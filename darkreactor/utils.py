@@ -1,8 +1,9 @@
+# General utility functions
+
 # Initialization
 
 import pandas as pd
 import numpy as np
-import darkchem
 
 from openbabel import openbabel
 from rdkit import Chem # Trying RDKit instead of OpenBabel
@@ -23,17 +24,6 @@ def array_in_nd_array(test, array):
         True/False
     """
     return any(np.array_equal(item, test) for item in array)
-
-
-def check_elements(string):
-    """Checks for chemical letters outside of the CHNOPS set.
-    If the string only contains CHNOPS, returns True.
-    Otherwise, returns False.
-    Note: does not cover Scandium :(
-    """
-
-    bad_elements = "ABDEFGIKLMRTUVWXYZsaroudlefgibtn" # chem alphabet -CHNOPS
-    return not any(n in bad_elements for n in string)
 
 
 def canonicalize(smiles, engine="openbabel"):
@@ -57,3 +47,37 @@ def canonicalize(smiles, engine="openbabel"):
     else:
         raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
     return can
+
+
+def clean_inchi(df, drop_na=True, col='InChI'):
+    """Cleans InChI strings in a dataframe.
+
+    Given a dataframe with a column containing InChI information, strips
+    padded/erroneous characters (e.g. newline) from the string.
+    Optionally drops any rows containing NaN values.
+
+    Args:
+        df
+
+    Returns:
+        df
+    """
+    inchis = list()
+    for inchi in df[col]:
+        try:
+            inchis.append(inchi.rstrip())
+        except:
+            inchis.append(inchi)
+    df[col] = inchis
+    return df
+
+
+def check_elements(string):
+    """Checks for chemical letters outside of the CHNOPS set.
+    If the string only contains CHNOPS, returns True.
+    Otherwise, returns False.
+    Note: does not cover Scandium :(
+    """
+
+    bad_elements = "ABDEFGIKLMRTUVWXYZsaroudlefgibtn" # chem alphabet -CHNOPS
+    return not any(n in bad_elements for n in string)

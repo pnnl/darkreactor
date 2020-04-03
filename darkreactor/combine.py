@@ -1,3 +1,5 @@
+# Module for combined reaction vector analysis
+
 # Initialization
 
 import os
@@ -7,14 +9,12 @@ import numpy as np
 import pandas as pd
 
 import darkchem
-import darknight
-import darkchem_vec_analysis
+import darkreactor
 
 from ast import literal_eval
 from datetime import datetime
 from openbabel import openbabel
 from rdkit import Chem
-
 
 
 # Functions
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # Get parameters
     paths = config['paths']
     paths = {path: literal_eval(paths[path]) for path in paths}
-    model_path = f'{paths['model_dir']}/{paths['model']}'
+    #model_path = f'{paths['model_dir']}/{paths['model']}'
     params = config['parameters']
     params = {param: literal_eval(params[param]) for param in params}
     result = 9
@@ -107,10 +107,10 @@ if __name__ == '__main__':
     avg_vec = average_vector(data, i_train)
 
     # Predict all
-    data["Vector, Predicted Product, Total"] = [apply_reaction(vec, avg_vec) for vec in data["Vector"]]
-    data["SMILES, Predicted Product, Total"] = [latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product, Total"]]
-    data["InChI, Predicted Product, Total"] = [can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product, Total"]]
-    data["InChIKey, Predicted Product, Total"] = [inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product, Total"]]
+    data["Vector, Predicted Product, Total"] = [darkreactor.react.apply_reaction(vec, avg_vec) for vec in data["Vector"]]
+    data["SMILES, Predicted Product, Total"] = [darkreactor.react.latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product, Total"]]
+    data["InChI, Predicted Product, Total"] = [darkreactor.react.can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product, Total"]]
+    data["InChIKey, Predicted Product, Total"] = [darkreactor.react.inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product, Total"]]
 
     # Success?!?
     data["Valid Prediction, Total"] = [any(array) for array in data["SMILES, Predicted Product, Total"]]

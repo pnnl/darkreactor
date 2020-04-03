@@ -1,3 +1,5 @@
+# Module for reading molecule data (InChI) and applying DarkChem rxn vectors
+
 # Initializations
 
 import numpy as np
@@ -5,7 +7,7 @@ import pandas as pd
 import os
 
 import darkchem
-import darknight
+import darkreactor
 
 from datetime import datetime
 from openbabel import openbabel
@@ -13,122 +15,8 @@ from rdkit import Chem # rdkit is slower than openbabel
 from sklearn.model_selection import train_test_split
 
 
+
 # Functions
-
-def clean_inchi(df, drop_na=True):
-    """Cleans InChI strings in a dataframe.
-
-    Given a dataframe with a column containing InChI information, strips
-    padded/erroneous characters (e.g. newline) from the string.
-    Optionally drops any rows containing NaN values.
-
-    Args:
-        df
-
-    Returns:
-        df
-    """
-    inchis = list()
-    for inchi in df["InChI"]:
-        try:
-            inchis.append(inchi.rstrip())
-        except:
-            inchis.append(inchi)
-    df["InChI"] = inchis
-    return df
-
-
-def inchi_to_can(inchi, engine="openbabel"):
-    """Converts InChI to canonical SMILES.
-
-    The conversion engine (OpenBabel or RDKit) can be specified.
-
-    Args:
-        inchi : str
-            InChI string
-        engine : "openbabel" or "rdkit", default "openbabel"
-            select conversion engine (OpenBabel or RDKit)
-    Returns:
-        smiles : canonical SMILES
-    """
-    if engine == "openbabel":
-        obconversion = openbabel.OBConversion()
-        obconversion.SetInAndOutFormats("inchi", "can")
-        obmol = openbabel.OBMol()
-        obconversion.ReadString(obmol, inchi)
-        outinchi = obconversion.WriteString(obmol)
-        can = outinchi.rstrip()
-    elif engine == "rdkit":
-        mol = Chem.MolFromInchi(inchi)#, sanitize=True)
-        can = Chem.MolToSmiles(mol)
-    else:
-        raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
-    return can
-
-
-def can_to_inchi(can, engine="openbabel"):
-    """Converts canonicalized SMILES string into InChI representation using
-    OpenBabel. (Important in verifying whether string-represented molecules are
-    identical)
-
-    Args:
-        can : str
-            canonical SMILES string
-        engine : "openbabel" or "rdkit", default "openbabel"
-            select conversion engine (OpenBabel or RDKit)
-    Returns:
-        inchi : str
-            InChI string
-    """
-    if engine == "openbabel":
-        obconversion = openbabel.OBConversion()
-        obconversion.SetInAndOutFormats("can", "inchi")
-        obmol = openbabel.OBMol()
-        obconversion.ReadString(obmol, can)
-        outcan = obconversion.WriteString(obmol)
-        inchi = outcan.rstrip()
-    elif engine == "rdkit":
-        mol = Chem.MolFromSmiles(can)#, sanitize=True)
-        inchi = Chem.MolToInchi(mol)
-    else:
-        raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
-    return inchi
-
-
-def can_array_to_inchi_array(array, **kwargs):
-    """
-    Args:
-    Returns:
-    """
-    return [can_to_inchi(inchi, **kwargs) for inchi in array]
-
-
-def inchi_to_inchikey(inchi, engine="openbabel"):
-    """
-    Args:
-    Returns:
-    """
-    if engine == "openbabel":
-        obconversion = openbabel.OBConversion()
-        obconversion.SetInAndOutFormats("inchi", "inchi")
-        obmol = openbabel.OBMol()
-        obconversion.ReadString(obmol, inchi)
-        obconversion.SetOptions("K", obconversion.OUTOPTIONS)
-        inchikey = obconversion.WriteString(obmol).rstrip()
-    elif engine == "rdkit":
-        mol = Chem.MolFromInchi(inchi)#, sanitize=True)
-        inchikey = Chem.MolToInchiKey(mol)
-    else:
-        raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
-    return inchikey
-
-def inchi_array_to_inchikey_array(array, **kwargs):
-    """
-    Args:
-    Returns:
-    """
-    return [inchi_to_inchikey(inchi, **kwargs) for inchi in array]
-
 
 def reduce_benzenoid(smiles, engine="openbabel"):
     """Reduces all aromatic carbons represented in a canonical SMILES string
@@ -142,7 +30,7 @@ def reduce_benzenoid(smiles, engine="openbabel"):
     Returns:
     """
     reduced = smiles.replace("c", "C")
-    return darknight.canonicalize(reduced, engine=engine)
+    return darkreactor.utils.canonicalize(reduced, engine=engine)
 
 
 def populate_products(df):
@@ -261,29 +149,6 @@ def classwise_train_test(df, col="Class", combine=True, random_state=None, test_
     return train, test
 
 
-def latent_to_embedding(vec, k=10):
-    """Converts latent space vector to character embedding.
-    Args:
-        k : int
-            beamsearch parameter
-    Returns:
-    """
-    softmax = model.decoder.predict(np.array([vec]))
-    embed = darkchem.utils.beamsearch(softmax, k=k).reshape(-1,100)
-    return embed
-
-
-def latent_to_can(vec, engine="openbabel", k=10):
-    """Converts latent space vector to canonical smiles.
-    Args:
-
-    Returns:
-    """
-    embed = latent_to_embedding(vec, k=k)
-    smiles = [darkchem.utils.vec2struct(vec) for vec in embed]
-    smiles = np.array([darknight.canonicalize(smi, engine=engine) for smi in smiles])
-    return smiles
-
 
 # Script to predict results using darkchem
 
@@ -324,7 +189,7 @@ if __name__ == "__main__":
     data = pd.read_csv(f"{filepath}/data/combined_[M+H]_darkchem_benzenoids.csv")
 
     # Clean data, remove classes with <10 molecules, filter by SMILES str length
-    data = clean_inchi(data)
+    data = darkreactor.utils.clean_inchi(data)
     data = data[data["Class"].notna()].reset_index(drop=True)
     filtered = data.groupby('Class')['Class'].filter(lambda x: len(x) >= min_class_size)
     data = data[data['Class'].isin(filtered)].reset_index(drop=True)
@@ -333,8 +198,8 @@ if __name__ == "__main__":
 
     # Create products column
     data = populate_products(data)
-    data["InChI, Product"] = [can_to_inchi(can) for can in data["SMILES, Product"]]
-    data["InChIKey, Product"] = [inchi_to_inchikey(inchi) for inchi in data["InChI, Product"]]
+    data["InChI, Product"] = [darkreactor.convert.can_to_inchi(can) for can in data["SMILES, Product"]]
+    data["InChIKey, Product"] = [darkreactor.convert.inchi_to_inchikey(inchi) for inchi in data["InChI, Product"]]
 
     # Compute latent space vectors and compute reaction vecs
     data = populate_latent_vectors(data)
@@ -356,9 +221,9 @@ if __name__ == "__main__":
 
     # Predict all (the slow part)
     data["Vector, Predicted Product"] = [apply_reaction(vec, classvecs[c][0]) for vec, c in zip(data["Vector"], data["Class"])]
-    data["SMILES, Predicted Product"] = [latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product"]]
-    data["InChI, Predicted Product"] = [can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product"]]
-    data["InChIKey, Predicted Product"] = [inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product"]]
+    data["SMILES, Predicted Product"] = [darkreactor.convert.latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product"]]
+    data["InChI, Predicted Product"] = [darkreactor.convert.can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product"]]
+    data["InChIKey, Predicted Product"] = [darkreactor.convert.inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product"]]
 
     # Success?!?
     data["Valid Prediction"] = [any(array) for array in data["SMILES, Predicted Product"]]
