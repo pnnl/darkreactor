@@ -2,9 +2,11 @@
 
 # Initialization
 
+import configparser
 import pandas as pd
 import numpy as np
 
+from ast import literal_eval
 from openbabel import openbabel
 from rdkit import Chem # Trying RDKit instead of OpenBabel
 #from rdkit.Chem.Draw import MolToImage
@@ -28,7 +30,7 @@ def array_in_nd_array(test, array):
 
 def canonicalize(smiles, engine="openbabel"):
     """Standardizes SMILES strings into canonical SMILES strings through
-    OpenBabel.
+    the specified engine.
     (Important in optimizing prediction results.)
 
     Input:
@@ -81,3 +83,59 @@ def check_elements(string):
 
     bad_elements = "ABDEFGIKLMRTUVWXYZsaroudlefgibtn" # chem alphabet -CHNOPS
     return not any(n in bad_elements for n in string)
+
+
+# Config file processing functions
+
+def read_config(file):
+    """Reads config.ini file
+    """
+    config = configparser.ConfigParser()
+    config.read(file)
+    #sects = [sect for sect in config if sect not in configparser.DEFAULTSECT]
+    return config
+
+
+def parse_config_sect(config, sect):
+    """Parses a config.ini section into a dictionary
+    """
+    sect = config[sect]
+    sectdict = {}
+    for var in sect:
+        try:
+            sectdict[var] = literal_eval(sect[var])
+        except:
+            sectdict[var] = sect[var]
+    #sect = {var: literal_eval(sect[var]) for var in sect}
+    return sectdict
+
+
+def get_config_sects(config, remove_default=True):
+    """Returns list of sections in a config file.
+
+    Args:
+        config:
+        remove_default: bool, default True
+            Ignores DEFAULTSECT and excludes from output dictionary.
+
+    Returns:
+    """
+    sects = [sect for sect in config]
+    if remove_default == True:
+        sects = [sect for sect in sects if sect not in configparser.DEFAULTSECT]
+    return sects
+
+
+def config_to_dict(config, **kwargs):
+    """Converts parsed config file to nested dictionary format.
+
+    Args:
+        config:
+        remove_default: bool, default True
+            Ignores DEFAULTSECT and excludes from output dictionary.
+
+    Returns:
+    """
+    sects = get_config_sects(config, **kwargs)
+    sectdict = {sect: parse_config_sect(config, sect) for sect in sects}
+    return sectdict

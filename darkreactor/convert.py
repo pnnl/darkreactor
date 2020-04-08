@@ -4,7 +4,7 @@
 
 import numpy as np
 import darkchem
-import darkreactor
+from darkreactor import darkreactor
 
 from openbabel import openbabel
 from rdkit import Chem # rdkit is slower than openbabel
@@ -107,7 +107,7 @@ def inchi_array_to_inchikey_array(array, **kwargs):
     return [inchi_to_inchikey(inchi, **kwargs) for inchi in array]
 
 
-def smiles_to_darkchem_embedding(smiles):
+def smiles_to_embedding(smiles):
     """Converts canonical SMILES strings to character embeddings using
     DarkChem.
 
@@ -118,7 +118,7 @@ def smiles_to_darkchem_embedding(smiles):
     return darkchem.utils.struct2vec(smiles).astype(int)
 
 
-def embedding_to_latent_vector(vec):
+def embedding_to_latent(vec, model=''):
     """Converts a molecule represented as a DarkChem character embedding into
     a vector representation in DarkChem's latent space.
 
@@ -128,18 +128,7 @@ def embedding_to_latent_vector(vec):
     return model.encoder.predict(np.array([vec]))[0]
 
 
-def compute_embeddings(df, col):
-    """Given a dataframe and column containing canonical SMILES strings,
-    converts SMILES to DarkChem character embeddings.
-
-    Args:
-    Returns:
-    """
-    vecs = [smiles_to_darkchem_embedding(smiles) for smiles in df[col]]
-    return vecs
-
-
-def latent_to_embedding(vec, k=10):
+def latent_to_embedding(vec, k=10, model=''):
     """Converts latent space vector to character embedding.
     Args:
         k : int
@@ -151,13 +140,13 @@ def latent_to_embedding(vec, k=10):
     return embed
 
 
-def latent_to_can(vec, engine="openbabel", k=10):
+def latent_to_can(vec, engine="openbabel", k=10, model=''):
     """Converts latent space vector to canonical smiles.
     Args:
 
     Returns:
     """
-    embed = latent_to_embedding(vec, k=k)
+    embed = latent_to_embedding(vec, k=k, model=model)
     smiles = [darkchem.utils.vec2struct(vec) for vec in embed]
     smiles = np.array([darkreactor.utils.canonicalize(smi, engine=engine) for smi in smiles])
     return smiles

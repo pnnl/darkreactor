@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 import darkchem
-import darkreactor
+from darkreactor import darkreactor
 
 from datetime import datetime
 from openbabel import openbabel
@@ -43,33 +43,18 @@ def populate_products(df):
     return df
 
 
-def smiles_to_darkchem_embedding(smiles):
-    """Converts canonical SMILES strings to character embeddings using
-    DarkChem.
-
-    Args:
-        smiles :
-    Returns:
-    """
-    return darkchem.utils.struct2vec(smiles).astype(int)
-
-
-def embedding_to_latent_vector(vec):
-    """Converts a molecule represented as a DarkChem character embedding into
-    a vector representation in DarkChem's latent space.
-    """
-    return model.encoder.predict(np.array([vec]))[0]
-
-
 def compute_embeddings(df, col):
     """Given a dataframe and column containing canonical SMILES strings,
     converts SMILES to DarkChem character embeddings.
+
+    Args:
+    Returns:
     """
-    vecs = [smiles_to_darkchem_embedding(smiles) for smiles in df[col]]
+    vecs = [darkreactor.convert.smiles_to_embedding(smiles) for smiles in df[col]]
     return vecs
 
 
-def populate_latent_vectors(df, cols=["SMILES", "SMILES, Product"]):
+def populate_latent_vectors(df, cols=["SMILES", "SMILES, Product"], model=''):
     """Takes a dataframe containing one reactant and one product column,
         containing reactants and products in canonical SMILES format.
     Creates new columns containing latent space vector representations of
@@ -79,8 +64,8 @@ def populate_latent_vectors(df, cols=["SMILES", "SMILES, Product"]):
     reactant = compute_embeddings(df, cols[0])
     product = compute_embeddings(df, cols[1])
 
-    df["Vector"] = [embedding_to_latent_vector(vec) for vec in reactant]
-    df["Vector, Product"] = [embedding_to_latent_vector(vec) for vec in product]
+    df["Vector"] = [darkreactor.convert.embedding_to_latent(vec, model=model) for vec in reactant]
+    df["Vector, Product"] = [darkreactor.convert.embedding_to_latent(vec, model=model) for vec in product]
 
     return df
 
@@ -140,7 +125,7 @@ def classwise_train_test(df, col="Class", combine=True, random_state=None, test_
     for aclass in classes:
         indices = df[df[col] == aclass].index.values
         i_train, i_test = train_test_split(indices, random_state=random_state,
-                                                    test_size=test_size)
+                                           test_size=test_size)
         train.append(i_train)
         test.append(i_test)
     train, test = np.array(train), np.array(test)
@@ -148,6 +133,53 @@ def classwise_train_test(df, col="Class", combine=True, random_state=None, test_
         train, test = np.hstack(train), np.hstack(test) # flattens arrays
     return train, test
 
+
+def self_reconstruct(mol, k=1, model='', engine='openbabel'):
+    """Self-reconstructs an input molecule thru DarkChem
+
+    Args:
+    Returns:
+    """
+    embed = darkreactor.convert.smiles_to_embedding(mol)
+    encoded = darkreactor.convert.embedding_to_latent(embed, model=model)
+    decoded = darkreactor.convert.latent_to_can(encoded, k=k, model=model, engine=engine)
+    return decoded
+
+
+# Liang's work: check for reconstructibility
+def check_reconstruction(mol, arr, simple=False, by='smiles', engine='openbabel'):
+    """Checks reconstruction (True or False) of input molecule vs array of
+    reconstructions.
+
+    Args:
+        by: str
+            Molecular representation with which to compare
+            Accepts: ('smiles', 'inchi', 'inchikey')
+    Returns:
+        bool
+    """
+    #reconstructed = self_reconstruct(mol, k=k, model=model)
+    if simple == True:
+        return any(arr)
+    if not any(arr):
+        return False
+    if by != 'smiles':
+        mol = darkreactor.convert.can_to_inchi(mol, engine=engine)
+        arr = darkreactor.convert.can_array_to_inchi_array(arr, engine=engine)
+        if by == 'inchikey':
+            mol = darkreactor.convert.inchi_to_inchikey(mol, engine=engine)
+            arr = darkreactor.convert.inchi_array_to_inchikey_array(arr, engine=engine)
+    return (mol in arr)
+
+def reconstruction_filter(mol, k=1, model='', by='smiles', engine='openbabel', simple=False):
+    """Checks reconstruction of a molecule in DarkChem.
+    Args:
+    Returns:
+    """
+    reconstructed = self_reconstruct(mol, k=k, model=model)
+    valid = check_reconstruction(mol, reconstructed, by=by, simple=simple, engine=engine)
+    #if valid:
+    return valid
 
 
 # Script to predict results using darkchem
