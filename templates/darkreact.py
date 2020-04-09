@@ -61,7 +61,9 @@ if __name__ == "__main__":
     if reconstruct['reconstruct'] != False:
         data['SMILES, Reconstructed'] = [darkreactor.react.self_reconstruct(smiles, k=reconstruct['k'], model=model, engine=params['engine']) for smiles in data['SMILES']]
         data['Valid Reconstruction'] = [darkreactor.react.check_reconstruction(smiles, arr, simple=reconstruct['simple'], by=reconstruct['by'], engine=params['engine']) for smiles, arr in zip(data['SMILES'], data['SMILES, Reconstructed'])]
-        data = data[data['Valid Reconstruction']].reset_index(drop=True)
+        data['SMILES, Reconstructed, Product'] = [darkreactor.react.self_reconstruct(smiles, k=reconstruct['k'], model=model, engine=params['engine']) for smiles in data['SMILES, Product']]
+        data['Valid Reconstruction, Product'] = [darkreactor.react.check_reconstruction(smiles, arr, simple=reconstruct['simple'], by=reconstruct['by'], engine=params['engine']) for smiles, arr in zip(data['SMILES, Product'], data['SMILES, Reconstructed Product'])]
+        data = data[(data['Valid Reconstruction']) & (data['Valid Reconstruction, Product'])].reset_index(drop=True)
     filtered = data.groupby('Class')['Class'].filter(lambda x: len(x) >= params['min_class_size'])
     data = data[data['Class'].isin(filtered.unique())].reset_index(drop=True)
 
