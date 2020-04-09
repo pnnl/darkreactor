@@ -58,6 +58,7 @@ if __name__ == "__main__":
         data['SMILES'] = [darkreactor.convert.inchi_to_can(inchi, engine=params['engine']) for inchi in data['InChI']]
     data["SMILES Length"] = [len(smi) for smi in data["SMILES"]]
     data = data[data["SMILES Length"] <= params['max_smiles_length']].reset_index(drop=True)
+    data = darkreactor.react.populate_products(data)
     if reconstruct['reconstruct'] != False:
         data['SMILES, Reconstructed'] = [darkreactor.react.self_reconstruct(smiles, k=reconstruct['k'], model=model, engine=params['engine']) for smiles in data['SMILES']]
         data['Valid Reconstruction'] = [darkreactor.react.check_reconstruction(smiles, arr, simple=reconstruct['simple'], by=reconstruct['by'], engine=params['engine']) for smiles, arr in zip(data['SMILES'], data['SMILES, Reconstructed'])]
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     data = data[data['Class'].isin(filtered.unique())].reset_index(drop=True)
 
     # Create products column
-    data = darkreactor.react.populate_products(data)
+    #data = darkreactor.react.populate_products(data)
     data["InChI, Product"] = [darkreactor.convert.can_to_inchi(can) for can in data["SMILES, Product"]]
     data["InChIKey, Product"] = [darkreactor.convert.inchi_to_inchikey(inchi) for inchi in data["InChI, Product"]]
 
