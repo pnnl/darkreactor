@@ -1,6 +1,6 @@
 # General utility functions
 
-# Initialization
+# Imports
 
 import configparser
 import pandas as pd
@@ -8,8 +8,7 @@ import numpy as np
 
 from ast import literal_eval
 from openbabel import openbabel
-from rdkit import Chem # Trying RDKit instead of OpenBabel
-#from rdkit.Chem.Draw import MolToImage
+from rdkit import Chem  # Trying RDKit instead of OpenBabel
 
 
 # Useful Functions
@@ -17,7 +16,8 @@ from rdkit import Chem # Trying RDKit instead of OpenBabel
 def array_in_nd_array(test, array):
     """Checks whether or not a test 1D array is contained in a full N-D array.
     Returns True if the test array is equal to any dimension of the N-D array.
-    Returns False if the test array does not match a dimension of the N-D array.
+    Returns False if the test array does not match a dimension of the N-D
+        array.
 
     Inputs:
         test
@@ -44,7 +44,7 @@ def canonicalize(smiles, engine="openbabel"):
         outMDL = obconversion.WriteString(obmol)
         can = outMDL.rstrip()
     elif engine == "rdkit":
-        mol = Chem.MolFromSmiles(smiles)#, sanitize=True)
+        mol = Chem.MolFromSmiles(smiles)  # , sanitize=True)
         can = Chem.MolToSmiles(mol)
     else:
         raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
@@ -81,7 +81,7 @@ def check_elements(string):
     Note: does not cover Scandium :(
     """
 
-    bad_elements = "ABDEFGIKLMRTUVWXYZsaroudlefgibtn" # chem alphabet -CHNOPS
+    bad_elements = "ABDEFGIKLMRTUVWXYZsaroudlefgibtn"  # chem alphabet -CHNOPS
     return not any(n in bad_elements for n in string)
 
 
@@ -92,7 +92,6 @@ def read_config(file):
     """
     config = configparser.ConfigParser()
     config.read(file)
-    #sects = [sect for sect in config if sect not in configparser.DEFAULTSECT]
     return config
 
 
@@ -106,7 +105,6 @@ def parse_config_sect(config, sect):
             sectdict[var] = literal_eval(sect[var])
         except:
             sectdict[var] = sect[var]
-    #sect = {var: literal_eval(sect[var]) for var in sect}
     return sectdict
 
 
@@ -121,8 +119,10 @@ def get_config_sects(config, remove_default=True):
     Returns:
     """
     sects = [sect for sect in config]
-    if remove_default == True:
-        sects = [sect for sect in sects if sect not in configparser.DEFAULTSECT]
+    if remove_default is True:
+        sects = [sect
+                 for sect in sects
+                 if sect not in configparser.DEFAULTSECT]
     return sects
 
 
