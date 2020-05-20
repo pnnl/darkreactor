@@ -5,6 +5,7 @@ Module for combined reaction vector analysis
 """
 
 # Imports
+import numpy as np
 import pandas as pd
 
 
