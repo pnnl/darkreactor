@@ -31,7 +31,7 @@ def weight_class_vectors(classvecs, results,
 
     weight_vecs = []
     for class_name, class_vec in zip(classvecs['Class'],
-                                     classvecs['Average Vector]']):
+                                     classvecs['Average Vector']):
         class_size = len(train[train['Class'] == class_name])
         class_weight = class_size / len(train)
         weight_vec = class_weight * class_vec
