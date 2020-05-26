@@ -57,6 +57,6 @@ def weighted_average_vector(classvecs, results,
         Weighted average vector
     """
     classvecs = weight_class_vectors(classvecs, results, column=column)
-    avg_vec = np.mean(classvecs['Weighted Average Vector'])
+    avg_vec = np.sum(classvecs['Weighted Average Vector'])
 
     return avg_vec
