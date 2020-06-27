@@ -7,7 +7,7 @@ import darkchem
 from darkreactor import darkreactor
 
 from openbabel import openbabel
-from rdkit import Chem # rdkit is slower than openbabel
+from rdkit import Chem  # rdkit is slower than openbabel
 
 
 # Functions
@@ -31,7 +31,7 @@ def inchi_to_can(inchi, engine="openbabel"):
         outinchi = obconversion.WriteString(obmol)
         can = outinchi.rstrip()
     elif engine == "rdkit":
-        mol = Chem.MolFromInchi(inchi)#, sanitize=True)
+        mol = Chem.MolFromInchi(inchi)
         can = Chem.MolToSmiles(mol)
     else:
         raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
@@ -60,14 +60,14 @@ def can_to_inchi(can, engine="openbabel"):
         outcan = obconversion.WriteString(obmol)
         inchi = outcan.rstrip()
     elif engine == "rdkit":
-        mol = Chem.MolFromSmiles(can)#, sanitize=True)
+        mol = Chem.MolFromSmiles(can)
         inchi = Chem.MolToInchi(mol)
     else:
         raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
     return inchi
 
 
-def can_array_to_inchi_array(array, **kwargs):
+def cans_to_inchis(array, **kwargs):
     """Converts array of canonical SMILES to corresponding array of InChIs.
 
     Args:
@@ -77,7 +77,7 @@ def can_array_to_inchi_array(array, **kwargs):
     return [can_to_inchi(inchi, **kwargs) for inchi in array]
 
 
-def inchi_to_inchikey(inchi, engine="openbabel"):
+def inchi_to_key(inchi, engine="openbabel"):
     """Converts InChI representation to InChIKey hash.
 
     Args:
@@ -89,25 +89,25 @@ def inchi_to_inchikey(inchi, engine="openbabel"):
         obmol = openbabel.OBMol()
         obconversion.ReadString(obmol, inchi)
         obconversion.SetOptions("K", obconversion.OUTOPTIONS)
-        inchikey = obconversion.WriteString(obmol).rstrip()
+        key = obconversion.WriteString(obmol).rstrip()
     elif engine == "rdkit":
-        mol = Chem.MolFromInchi(inchi)#, sanitize=True)
-        inchikey = Chem.MolToInchiKey(mol)
+        mol = Chem.MolFromInchi(inchi)
+        key = Chem.MolToInchiKey(mol)
     else:
         raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
-    return inchikey
+    return key
 
 
-def inchi_array_to_inchikey_array(array, **kwargs):
+def inchis_to_keys(array, **kwargs):
     """Converts array of InChIs to corresponding array of InChIKeys.
 
     Args:
     Returns:
     """
-    return [inchi_to_inchikey(inchi, **kwargs) for inchi in array]
+    return [inchi_to_key(inchi, **kwargs) for inchi in array]
 
 
-def smiles_to_embedding(smiles):
+def can_to_embedding(smiles):
     """Converts canonical SMILES strings to character embeddings using
     DarkChem.
 
@@ -118,9 +118,9 @@ def smiles_to_embedding(smiles):
     return darkchem.utils.struct2vec(smiles).astype(int)
 
 
-def embedding_to_latent(vec, model=''):
-    """Converts a molecule represented as a DarkChem character embedding into
-    a vector representation in DarkChem's latent space.
+def embedding_to_latent(vec, model):
+    """Converts a molecule represented as a DarkChem character
+    embedding into a vector representation in DarkChem's latent space.
 
     Args:
     Returns:
@@ -128,7 +128,7 @@ def embedding_to_latent(vec, model=''):
     return model.encoder.predict(np.array([vec]))[0]
 
 
-def latent_to_embedding(vec, k=10, model=''):
+def latent_to_embedding(vec, model, k=10):
     """Converts latent space vector to character embedding.
     Args:
         k : int
@@ -136,11 +136,11 @@ def latent_to_embedding(vec, k=10, model=''):
     Returns:
     """
     softmax = model.decoder.predict(np.array([vec]))
-    embed = darkchem.utils.beamsearch(softmax, k=k).reshape(-1,100)
+    embed = darkchem.utils.beamsearch(softmax, k=k).reshape(-1, 100)
     return embed
 
 
-def latent_to_can(vec, engine="openbabel", k=10, model=''):
+def latent_to_can(vec, model, engine="openbabel", k=10):
     """Converts latent space vector to canonical smiles.
     Args:
 
@@ -148,5 +148,7 @@ def latent_to_can(vec, engine="openbabel", k=10, model=''):
     """
     embed = latent_to_embedding(vec, k=k, model=model)
     smiles = [darkchem.utils.vec2struct(vec) for vec in embed]
-    smiles = np.array([darkreactor.utils.canonicalize(smi, engine=engine) for smi in smiles])
+    smiles = np.array([darkreactor.utils.canonicalize(smi,
+                                                      engine=engine)
+                       for smi in smiles])
     return smiles
