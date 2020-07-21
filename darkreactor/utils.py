@@ -14,7 +14,7 @@ from rdkit import Chem  # Trying RDKit instead of OpenBabel
 # Useful Functions
 
 def array_in_nd_array(test, array):
-    """Checks whether or not a test 1D array is contained in a full N-D array.
+    """Check whether or not a test 1D array is contained in a full N-D array.
     Returns True if the test array is equal to any dimension of the N-D array.
     Returns False if the test array does not match a dimension of the N-D
         array.
@@ -29,7 +29,7 @@ def array_in_nd_array(test, array):
 
 
 def canonicalize(smiles, engine="openbabel"):
-    """Standardizes SMILES strings into canonical SMILES strings through
+    """Standardize SMILES strings into canonical SMILES strings through
     the specified engine.
     (Important in optimizing prediction results.)
 
@@ -52,7 +52,7 @@ def canonicalize(smiles, engine="openbabel"):
 
 
 def clean_inchi(df, drop_na=True, col='InChI'):
-    """Cleans InChI strings in a dataframe.
+    """Clean InChI strings in a dataframe.
 
     Given a dataframe with a column containing InChI information, strips
     padded/erroneous characters (e.g. newline) from the string.
@@ -75,7 +75,7 @@ def clean_inchi(df, drop_na=True, col='InChI'):
 
 
 def check_elements(string):
-    """Checks for chemical letters outside of the CHNOPS set.
+    """Check for chemical letters outside of the CHNOPS set.
     If the string only contains CHNOPS, returns True.
     Otherwise, returns False.
     Note: does not cover Scandium :(
@@ -88,7 +88,20 @@ def check_elements(string):
 # Config file processing functions
 
 def read_config(file):
-    """Reads config.ini file
+    """Read config.ini file.
+
+    Creates configparser.ConfigParser() object.
+
+    Args
+    ----
+        file : .ini
+            /path/to/config.ini
+
+    Returns
+    -------
+        configparser.ConfigParser()
+            ConfigParser() object containing config data
+
     """
     config = configparser.ConfigParser()
     config.read(file)
@@ -96,27 +109,44 @@ def read_config(file):
 
 
 def parse_config_sect(config, sect):
-    """Parses a config.ini section into a dictionary
+    """Parse a config.ini section into a dictionary.
+
+    Args
+    ----
+        config : configparser.ConfigParser()
+            ConfigParser() object
+        sect : str
+            Name of section in config file
+
+    Returns
+    -------
+        dict
+
     """
     sect = config[sect]
     sectdict = {}
     for var in sect:
         try:
             sectdict[var] = literal_eval(sect[var])
-        except:
+        except (ValueError, TypeError):
             sectdict[var] = sect[var]
     return sectdict
 
 
 def get_config_sects(config, remove_default=True):
-    """Returns list of sections in a config file.
+    """Find list of all sections in a config file.
 
-    Args:
-        config:
-        remove_default: bool, default True
+    Args
+    ----
+        config :
+        remove_default : bool, default True
             Ignores DEFAULTSECT and excludes from output dictionary.
 
-    Returns:
+    Returns
+    -------
+        list
+            List of sections contained in a config file.
+
     """
     sects = [sect for sect in config]
     if remove_default is True:
@@ -127,14 +157,21 @@ def get_config_sects(config, remove_default=True):
 
 
 def config_to_dict(config, **kwargs):
-    """Converts parsed config file to nested dictionary format.
+    """Convert parsed config file to nested dictionary format.
 
-    Args:
-        config:
-        remove_default: bool, default True
+    Args
+    ----
+        config :
+        remove_default : bool, default True
             Ignores DEFAULTSECT and excludes from output dictionary.
 
-    Returns:
+    Returns
+    -------
+        dict
+            Dictionary-ized version of a config file, where each
+            section in the config.ini is a dictionary key, and each
+            parameter is a dictionary value.
+
     """
     sects = get_config_sects(config, **kwargs)
     sectdict = {sect: parse_config_sect(config, sect) for sect in sects}
