@@ -10,14 +10,16 @@ import pandas as pd
 
 
 # Functions
-def weight_class_vectors(classvecs, results,
-                         column='Weighted Average Vector'):
+def weight_bin_vectors(bin_vecs, bin_name, results,
+                       column='Weighted Average Vector'):
     """Given the results.pkl and classvecs.pkl outputs of a DarkReactor
     computation, computes class vectors re-weighted by frequency.
 
     Args:
-        classvecs: pandas.DataFrame
+        bin_vecs: pandas.DataFrame
             DataFrame loaded from classvecs.pkl
+        bin_name: str
+            Name of the bin used to compute separate bin-wise vectors
         results: pandas.DataFrame
             DataFrame loaded from results.pkl
         column: str
@@ -29,26 +31,26 @@ def weight_class_vectors(classvecs, results,
     """
     train = results[~results["Test Set"]]
 
-    weight_vecs = []
-    for class_name, class_vec in zip(classvecs['Class'],
-                                     classvecs['Average Vector']):
-        class_size = len(train[train['Class'] == class_name])
-        class_weight = class_size / len(train)
-        weight_vec = class_weight * class_vec
-        weight_vecs.append(weight_vec)
+    weighted_vecs = []
+    for a_name, a_vec in zip(bin_vecs[bin_name],
+                             bin_vecs['Average Vector']):
+        size = len(train[train[bin_name] == a_name])
+        weight = size / len(train)
+        weighted_vec = weight * a_vec
+        weighted_vecs.append(weighted_vec)
 
-    classvecs[column] = weight_vecs
+    bin_vecs[column] = weighted_vecs
 
-    return classvecs
+    return bin_vecs
 
 
-def weighted_average_vector(classvecs, results,
+def weighted_average_vector(bin_vecs, results,
                             column='Weighted Average Vector'):
     """Given the results.pkl and classvecs.pkl outputs of a DarkReactor
     computation, computes a total weighted average reaction vector.
 
     Args:
-        classvecs: pandas.DataFrame
+        bin_vecs: pandas.DataFrame
         results: pandas.DataFrame
         column: str
 

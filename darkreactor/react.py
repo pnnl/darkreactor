@@ -54,13 +54,23 @@ def compute_embeddings(df, col):
     return vecs
 
 
-def populate_latent_vectors(df, model, cols=["SMILES", "SMILES, Product"]):
+def populate_latent_vectors(df, model, cols):
     """Takes a dataframe containing one reactant and one product column,
         containing reactants and products in canonical SMILES format.
     Creates new columns containing latent space vector representations of
         reactant molecules and product molecules, respectively.
     Returns dataframe with new column appended.
+
+    Args:
+        model: darkchem model
+        cols: list or array-like
+            e.g. ['reactant_smiles', 'product_smiles']
+            2-item list of column names where the first item maps to
+            reactant molecule SMILES and the second item maps to
+            product molecule SMILES
     """
+    assert len(cols) == 2, "Error: cols argumemt must contain 2 column names"
+
     reactant = compute_embeddings(df, cols[0])
     product = compute_embeddings(df, cols[1])
 
@@ -72,12 +82,19 @@ def populate_latent_vectors(df, model, cols=["SMILES", "SMILES, Product"]):
     return df
 
 
-def compute_reaction_vectors(df, cols=["Vector", "Vector, Product"]):
+def compute_reaction_vectors(df, cols):
     """Takes a dataframe containing reactant and product latent space
     vectors and computes the difference ("reaction vector"; or
     (product - reactant)) for each reactant-product pair.
     Returns list of reaction vectors.
+
+    Args:
+        cols: list or array-like
+            e.g. ["reactant_vector_col", "product_vector_col"]
+    Returns:
     """
+    assert len(cols) == 2, "Error: cols argumemt must contain 2 column names"
+
     reactants = df[cols[0]].values
     products = df[cols[1]].values
 
@@ -85,10 +102,10 @@ def compute_reaction_vectors(df, cols=["Vector", "Vector, Product"]):
     return reactions
 
 
-def populate_reaction_vectors(df, cols=["Vector", "Vector, Product"]):
+def populate_reaction_vectors(df, cols, col_name='reaction_vector'):
     """Populates dataframe with reaction vectors
     """
-    df["Reaction Vector"] = compute_reaction_vectors(df, cols=cols)
+    df[col_name] = compute_reaction_vectors(df, cols=cols)
     return df
 
 
@@ -101,7 +118,7 @@ def apply_reaction(reactant, vec):
     return vecsum
 
 
-def average_vector(df, indices, col="Reaction Vector"):#classes=False, col="Reaction Vectors"):
+def average_vector(df, indices, col="reaction_vector"):#classes=False, col="Reaction Vectors"):
     """Computes average vector given list of indices in a dataframe
     """
     avg = np.mean(df[col].values[indices], axis=0)
@@ -154,10 +171,13 @@ def check_reconstruction(mol, arr,
                          simple=False,
                          by='smiles',
                          engine='openbabel'):
-    """Checks reconstruction (True or False) of input molecule vs array of
-    reconstructions.
+    """Checks DarkChem reconstruction (True or False) of a molecule.
+    Can perform simple check (returns bool) or check vs array of
+    reconstructions (returns array of bools).
 
     Args:
+        simple: bool, default False
+            Performs simple reconstruction check.
         by: str
             Molecular representation with which to compare
             Accepts: ('smiles', 'inchi', 'inchikey')
