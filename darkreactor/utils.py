@@ -128,7 +128,7 @@ def parse_config_sect(config, sect):
     for var in sect:
         try:
             sectdict[var] = literal_eval(sect[var])
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, SyntaxError):
             sectdict[var] = sect[var]
     return sectdict
 

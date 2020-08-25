@@ -32,14 +32,13 @@ def reduce_benzenoid(smiles, engine="openbabel"):
     return utils.canonicalize(reduced, engine=engine)
 
 
-def populate_products(df):
+def populate_products(df, in_col='smiles_r', out_col='smiles_p'):
     """Takes a dataframe with SMILES strings in one column.
     Creates new column containing SMILES strings with all aromatic carbons
         converted into aliphatic carbons.
     Returns dataframe with new column appended.
     """
-    df["SMILES, Product"] = [reduce_benzenoid(smiles)
-                             for smiles in df["SMILES"]]
+    df[out_col] = [reduce_benzenoid(smiles) for smiles in df[in_col]]
     return df
 
 
@@ -54,44 +53,71 @@ def compute_embeddings(df, col):
     return vecs
 
 
-def populate_latent_vectors(df, model, cols):
-    """Takes a dataframe containing one reactant and one product column,
+def populate_latent_vectors(df, model,
+                            in_cols=['smiles_r', 'smiles_p'],
+                            out_cols=['vec_r', 'vec_p']):
+    """Populate a dataframe with DarkChem vectors.
+
+    Takes a dataframe containing one reactant and one product column,
         containing reactants and products in canonical SMILES format.
-    Creates new columns containing latent space vector representations of
-        reactant molecules and product molecules, respectively.
+
+    Creates new columns containing latent space vector representations
+        of reactant molecules and product molecules, respectively.
     Returns dataframe with new column appended.
 
     Args:
-        model: darkchem model
-        cols: list or array-like
+    ----
+        df : pandas.DataFrame
+        model : darkchem model
+        in_cols : list or array-like
             e.g. ['reactant_smiles', 'product_smiles']
             2-item list of column names where the first item maps to
             reactant molecule SMILES and the second item maps to
             product molecule SMILES
+        out_cols : list or array-like
+            e.g. ['vec_r', 'vec_p']
+            2-item list of column names where the first item maps to
+            reactant vector and the second item maps to product vector
+
+    Returns
+    -------
+        pandas.DataFrame
+            DataFrame populated by vectors
+
     """
-    assert len(cols) == 2, "Error: cols argumemt must contain 2 column names"
+    assert len(in_cols) == 2, ("in_cols argumemt must contain 2 column names.")
+    assert len(out_cols) == 2, (
+        "out_cols argumemt must contain 2 column names.")
 
-    reactant = compute_embeddings(df, cols[0])
-    product = compute_embeddings(df, cols[1])
+    reactant = compute_embeddings(df, in_cols[0])
+    product = compute_embeddings(df, in_cols[1])
 
-    df["Vector"] = [convert.embedding_to_latent(vec, model)
-                    for vec in reactant]
-    df["Vector, Product"] = [convert.embedding_to_latent(vec, model)
-                             for vec in product]
+    df[out_cols[0]] = [convert.embedding_to_latent(vec, model)
+                       for vec in reactant]
+    df[out_cols[1]] = [convert.embedding_to_latent(vec, model)
+                       for vec in product]
 
     return df
 
 
-def compute_reaction_vectors(df, cols):
-    """Takes a dataframe containing reactant and product latent space
+def compute_reaction_vectors(df, cols=['vec_r', 'vec_p']):
+    """Compute reaction vectors from reactant and product.
+
+    Takes a dataframe containing reactant and product latent space
     vectors and computes the difference ("reaction vector"; or
     (product - reactant)) for each reactant-product pair.
     Returns list of reaction vectors.
 
     Args:
-        cols: list or array-like
+    ----
+        df : pandas.DataFrame
+        cols : list or array-like
             e.g. ["reactant_vector_col", "product_vector_col"]
-    Returns:
+
+    Returns
+    -------
+        pandas.DataFrame
+
     """
     assert len(cols) == 2, "Error: cols argumemt must contain 2 column names"
 
