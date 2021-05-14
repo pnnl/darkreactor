@@ -1,27 +1,31 @@
-# Molecule conversions module
+"""convert : Module for molecular conversions.
 
-# Initializations
+author: @christinehc
+"""
 
+# Imports
 import numpy as np
-import darkchem
-from darkreactor import darkreactor
-
+from darkreactor import utils
+from darkchem.utils import beamsearch, struct2vec, vec2struct
 from openbabel import openbabel
-from rdkit import Chem  # rdkit is slower than openbabel
+from rdkit import Chem   # note: rdkit is slower than openbabel
 
 
 # Functions
-
 def inchi_to_can(inchi, engine="openbabel"):
-    """Converts InChI to canonical SMILES.
+    """Convert InChI to canonical SMILES.
 
-    Args:
-        inchi : str
-            InChI string
-        engine : "openbabel" or "rdkit", default "openbabel"
-            Specify the conversion engine (OpenBabel or RDKit)
-    Returns:
-        smiles : canonical SMILES
+    Parameters
+    ----------
+    inchi : str
+        InChI string.
+    engine : str (default: "openbabel")
+        Molecular conversion engine ("openbabel" or "rdkit").
+
+    Returns
+    -------
+    str
+        Canonical SMILES.
     """
     if engine == "openbabel":
         obconversion = openbabel.OBConversion()
@@ -34,23 +38,26 @@ def inchi_to_can(inchi, engine="openbabel"):
         mol = Chem.MolFromInchi(inchi)
         can = Chem.MolToSmiles(mol)
     else:
-        raise AttributeError("Engine must be either 'openbabel' or 'rdkit'.")
+        raise AttributeError(
+            "Engine must be either 'openbabel' or 'rdkit'."
+            )
     return can
 
 
 def can_to_inchi(can, engine="openbabel"):
-    """Converts canonicalized SMILES string into InChI representation using
-    OpenBabel. (Important in verifying whether string-represented molecules are
-    identical)
+    """Convert canonicalized SMILES to InChI.
 
-    Args:
-        can : str
-            Canonical SMILES string
-        engine : "openbabel" or "rdkit", default "openbabel"
-            Specify the conversion engine (OpenBabel or RDKit)
-    Returns:
-        inchi : str
-            InChI string
+    Parameters
+    ----------
+    can : str
+        Canonical SMILES.
+    engine : str (default: "openbabel")
+        Molecular conversion engine ("openbabel" or "rdkit").
+
+    Returns
+    -------
+    str
+        InChI string.
     """
     if engine == "openbabel":
         obconversion = openbabel.OBConversion()
@@ -68,21 +75,41 @@ def can_to_inchi(can, engine="openbabel"):
 
 
 def cans_to_inchis(array, **kwargs):
-    """Converts array of canonical SMILES to corresponding array of InChIs.
+    """Convert array of canonical SMILES to array of InChIs.
 
-    Args:
-        array : list or array
-    Returns:
+    Parameters
+    ----------
+    array : list of str or array of str
+        List of SMILES.
+    **kwargs : dict
+        Keyword arguments for `can_to_inchi`.
+
+    Returns
+    -------
+    list
+        List of InChI corresponding to input list of SMILES.
+
     """
     return [can_to_inchi(inchi, **kwargs) for inchi in array]
 
 
 def inchi_to_key(inchi, engine="openbabel"):
-    """Converts InChI representation to InChIKey hash.
+    """Convert InChI representation to InChIKey hash.
 
-    Args:
-    Returns:
+    Parameters
+    ----------
+    inchi : str
+        InChI representation.
+    engine : str (default: "openbabel")
+        Molecular conversion engine ("openbabel" or "rdkit").
+
+    Returns
+    -------
+    str
+        InChIKey hash.
+
     """
+
     if engine == "openbabel":
         obconversion = openbabel.OBConversion()
         obconversion.SetInAndOutFormats("inchi", "inchi")
@@ -99,56 +126,108 @@ def inchi_to_key(inchi, engine="openbabel"):
 
 
 def inchis_to_keys(array, **kwargs):
-    """Converts array of InChIs to corresponding array of InChIKeys.
+    """Convert array of InChIs to corresponding array of InChIKeys.
 
-    Args:
-    Returns:
+    Parameters
+    ----------
+    array : list of str or array of str
+        Array of InChI strings.
+    **kwargs : dict
+        Keyword arguments for `inchi_to_key`.
+
+    Returns
+    -------
+    list
+        List of InChIKeys corresponding to input InChIs.
+
     """
     return [inchi_to_key(inchi, **kwargs) for inchi in array]
 
 
 def can_to_embedding(smiles):
-    """Converts canonical SMILES strings to character embeddings using
-    DarkChem.
+    """Convert canonical SMILES to DarkChem character embeddings.
 
-    Args:
-        smiles :
-    Returns:
+    Parameters
+    ----------
+    smiles : str
+        Canonical SMILES string.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of shape (100,).
+
     """
-    return darkchem.utils.struct2vec(smiles).astype(int)
+    return struct2vec(smiles).astype(int)
 
 
 def embedding_to_latent(vec, model):
-    """Converts a molecule represented as a DarkChem character
-    embedding into a vector representation in DarkChem's latent space.
+    """Convert DarkChem character embedding to latent space vector.
 
-    Args:
-    Returns:
+    Parameters
+    ----------
+    vec : list or array-like
+        Vector of character embeddings.
+    model : object
+        Pre-trained model object with network weights.
+        (e.g. `darkchem.network.VAE` object)
+
+    Returns
+    -------
+    numpy.ndarray
+        Latent space vector.
+
     """
     return model.encoder.predict(np.array([vec]))[0]
 
 
 def latent_to_embedding(vec, model, k=10):
-    """Converts latent space vector to character embedding.
-    Args:
-        k : int
-            beamsearch parameter
-    Returns:
+    """Convert latent space vector to DarkChem character embedding.
+
+    Parameters
+    ----------
+    vec : list or array-like
+        Vector of latent space coordinates.
+    model : object
+        Pre-trained model object with network weights.
+        (e.g. `darkchem.network.VAE` object)
+    k : int
+        Beam width of the decoder.
+
+    Returns
+    -------
+    numpy.ndarray
+        Vector of character enbeddings.
+
     """
     softmax = model.decoder.predict(np.array([vec]))
-    embed = darkchem.utils.beamsearch(softmax, k=k).reshape(-1, 100)
-    return embed
+    embedding = beamsearch(softmax, k=k).reshape(-1, 100)
+    return embedding
 
 
 def latent_to_can(vec, model, engine="openbabel", k=10):
-    """Converts latent space vector to canonical smiles.
-    Args:
+    """Convert latent space vector to canonical smiles.
 
-    Returns:
+    Parameters
+    ----------
+    vec : list or array-like
+        Vector of latent space coordinates.
+    model : object
+        Pre-trained model object with network weights.
+        (e.g. `darkchem.network.VAE` object)
+    engine : str (default: "openbabel")
+        Molecular conversion engine ("openbabel" or "rdkit").
+    k : int
+        Beam width of the decoder.
+
+    Returns
+    -------
+    numpy.ndarray of str
+        Array of k canonical SMILES decodings.
+
     """
     embed = latent_to_embedding(vec, k=k, model=model)
-    smiles = [darkchem.utils.vec2struct(vec) for vec in embed]
-    smiles = np.array([darkreactor.utils.canonicalize(smi,
-                                                      engine=engine)
+    smiles = [vec2struct(vec) for vec in embed]
+    smiles = np.array([utils.canonicalize(smi, engine=engine)
                        for smi in smiles])
     return smiles

@@ -1,12 +1,10 @@
 # General utility functions
 
 # Imports
-
 import configparser
-import pandas as pd
-import numpy as np
-
 from ast import literal_eval
+
+import numpy as np
 from openbabel import openbabel
 from rdkit import Chem  # Trying RDKit instead of OpenBabel
 
@@ -87,40 +85,40 @@ def check_elements(string):
 
 # Config file processing functions
 
-def read_config(file):
+def read_config(filename):
     """Read config.ini file.
 
     Creates configparser.ConfigParser() object.
 
-    Args
-    ----
-        file : .ini
-            /path/to/config.ini
+    Parameters
+    ----------
+    filename : .ini
+        /path/to/config.ini
 
     Returns
     -------
-        configparser.ConfigParser()
-            ConfigParser() object containing config data
+    configparser.ConfigParser()
+        ConfigParser() object containing config data
 
     """
     config = configparser.ConfigParser()
-    config.read(file)
+    config.read(filename)
     return config
 
 
 def parse_config_sect(config, sect):
     """Parse a config.ini section into a dictionary.
 
-    Args
-    ----
-        config : configparser.ConfigParser()
-            ConfigParser() object
-        sect : str
-            Name of section in config file
+    Parameters
+    ----------
+    config : configparser.ConfigParser()
+        ConfigParser() object
+    sect : str
+        Name of section in config file
 
     Returns
     -------
-        dict
+    dict
 
     """
     sect = config[sect]
@@ -136,16 +134,16 @@ def parse_config_sect(config, sect):
 def get_config_sects(config, remove_default=True):
     """Find list of all sections in a config file.
 
-    Args
-    ----
-        config :
-        remove_default : bool, default True
-            Ignores DEFAULTSECT and excludes from output dictionary.
+    Parameters
+    ----------
+    config :
+    remove_default : bool, default True
+        Ignores DEFAULTSECT and excludes from output dictionary.
 
     Returns
     -------
-        list
-            List of sections contained in a config file.
+    list
+        List of sections contained in a config file.
 
     """
     sects = [sect for sect in config]
@@ -159,20 +157,38 @@ def get_config_sects(config, remove_default=True):
 def config_to_dict(config, **kwargs):
     """Convert parsed config file to nested dictionary format.
 
-    Args
-    ----
-        config :
-        remove_default : bool, default True
-            Ignores DEFAULTSECT and excludes from output dictionary.
+    Parameters
+    ----------
+    config :
+    remove_default : bool, default True
+        Ignores DEFAULTSECT and excludes from output dictionary.
 
     Returns
     -------
-        dict
-            Dictionary-ized version of a config file, where each
-            section in the config.ini is a dictionary key, and each
-            parameter is a dictionary value.
+    dict
+        Dictionary-ized version of a config file, where each
+        section in the config.ini is a dictionary key, and each
+        parameter is a dictionary value.
 
     """
     sects = get_config_sects(config, **kwargs)
     sectdict = {sect: parse_config_sect(config, sect) for sect in sects}
     return sectdict
+
+
+def read_configdict(filename):
+    """Short summary.
+
+    Parameters
+    ----------
+    filename : type
+        Description of parameter `filename`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    config = read_config(filename)
+    return config_to_dict(config)

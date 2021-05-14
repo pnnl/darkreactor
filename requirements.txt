@@ -1,0 +1,3 @@
+rdkit
+openbabel
+darkchem

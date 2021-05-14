@@ -1,22 +1,22 @@
-# Module for reading molecule data (InChI) and applying DarkChem rxn vectors
+"""react : Module for transforming molecules and applying reactions.
 
-# Initializations
+author: @christinehc
+"""
+
+# Imports
+from datetime import datetime
+import os
 
 import numpy as np
 import pandas as pd
-import os
-
-import darkchem
-from darkreactor.darkreactor import (utils, convert)
-
-from datetime import datetime
+from darkchem.utils import load_model
+from darkreactor import utils, convert
 from openbabel import openbabel
 from rdkit import Chem  # rdkit is slower than openbabel
 from sklearn.model_selection import train_test_split
 
 
 # Functions
-
 def reduce_benzenoid(smiles, engine="openbabel"):
     """Reduces all aromatic carbons represented in a canonical SMILES string
         into aliphatic carbon representations.
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     np.seterr(divide='ignore')
 
     # Load model
-    model = darkchem.utils.load_model(f"{sean}/N7b_[M+H]/")
+    model = load_model(f"{sean}/N7b_[M+H]/")
 
     # Load DarkChem training data -not necessary
     #x = np.load(f"{filepath}/darkchem_files/combined_[M+H]_smiles.npy")
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     data = pd.read_csv(f"{filepath}/data/combined_[M+H]_darkchem_benzenoids.csv")
 
     # Clean data, remove classes with <10 molecules, filter by SMILES str length
-    data = darkreactor.utils.clean_inchi(data)
+    data = utils.clean_inchi(data)
     data = data[data["Class"].notna()].reset_index(drop=True)
     filtered = data.groupby('Class')['Class'].filter(lambda x: len(x) >= min_class_size)
     data = data[data['Class'].isin(filtered)].reset_index(drop=True)
@@ -284,8 +284,8 @@ if __name__ == "__main__":
 
     # Create products column
     data = populate_products(data)
-    data["InChI, Product"] = [darkreactor.convert.can_to_inchi(can) for can in data["SMILES, Product"]]
-    data["InChIKey, Product"] = [darkreactor.convert.inchi_to_inchikey(inchi) for inchi in data["InChI, Product"]]
+    data["InChI, Product"] = [convert.can_to_inchi(can) for can in data["SMILES, Product"]]
+    data["InChIKey, Product"] = [convert.inchi_to_inchikey(inchi) for inchi in data["InChI, Product"]]
 
     # Compute latent space vectors and compute reaction vecs
     data = populate_latent_vectors(data)
@@ -307,9 +307,9 @@ if __name__ == "__main__":
 
     # Predict all (the slow part)
     data["Vector, Predicted Product"] = [apply_reaction(vec, classvecs[c][0]) for vec, c in zip(data["Vector"], data["Class"])]
-    data["SMILES, Predicted Product"] = [darkreactor.convert.latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product"]]
-    data["InChI, Predicted Product"] = [darkreactor.convert.can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product"]]
-    data["InChIKey, Predicted Product"] = [darkreactor.convert.inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product"]]
+    data["SMILES, Predicted Product"] = [convert.latent_to_can(vec, k=k, engine=engine) for vec in data["Vector, Predicted Product"]]
+    data["InChI, Predicted Product"] = [convert.can_array_to_inchi_array(can, engine=engine) for can in data["SMILES, Predicted Product"]]
+    data["InChIKey, Predicted Product"] = [convert.inchi_array_to_inchikey_array(inchis, engine=engine) for inchis in data["InChI, Predicted Product"]]
 
     # Success?!?
     data["Valid Prediction"] = [any(array) for array in data["SMILES, Predicted Product"]]
