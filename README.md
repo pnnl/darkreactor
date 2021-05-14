@@ -7,7 +7,34 @@ Pacific Northwest National Laboratory.
 ## Usage
 
 DarkReactor is a suite of Python modules enabling the batch analysis
-of molecular reactions. 
+of molecular reactions. While the code has been written to be
+compatible with [DarkChem](https://pubs.acs.org/doi/abs/10.1021/acs.analchem.9b02348),
+its functionalities can easily be adapted to other frameworks.
+
+To install and use DarkReactor in its original implementation
+with DarkChem:
+
+1. Follow the
+   [DarkChem installation guide](https://github.com/pnnl/darkchem) to
+   install DarkChem on your system via conda.
+2. Use pip to install the code directly from the repository:
+```bash
+# install from an existing copy of the repo
+cd /path/to/darkreactor
+pip install .
+
+# clone/install
+git clone https://github.com/pnnl/darkreactor.git
+pip install darkreactor/
+
+# direct
+pip install git+https://github.com/pnnl/darkreactor
+```
+3. DarkReactor is now ready to use!
+  - Note: To run DarkReactor on the included data file, you must
+    (1) format data and artificially generate reaction products
+    using `generate_data.py`, and then (2) calculate reaction vectors
+    and assess predictions using `run_darkreactor.py`.
 
 # Disclaimer
 

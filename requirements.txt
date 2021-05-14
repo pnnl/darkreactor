@@ -1,3 +1,3 @@
-rdkit
-openbabel
+# rdkit >= 2020.09.1
+# openbabel >= 2.9
 darkchem
